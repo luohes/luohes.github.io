@@ -1,162 +1,357 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>定时提醒</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: sans-serif; }
-        body { background: #1a1a1a; color: #fff; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 20px; }
-        .header { width: 100%; max-width: 500px; margin-bottom: 30px; text-align: center; }
-        .current-time { font-size: 2rem; margin: 10px 0; color: #4CAF50; }
-        .settings { background: #2d2d2d; padding: 25px; border-radius: 12px; width: 100%; max-width: 500px; margin-bottom: 30px; }
-        .setting-item { margin-bottom: 20px; }
-        .setting-item label { display: block; margin-bottom: 8px; font-weight: bold; }
-        .time-input { display: flex; gap: 10px; align-items: center; }
-        .time-input input { width: 70px; padding: 8px; border-radius: 6px; border: none; text-align: center; font-size: 1rem; }
-        .week-checkboxes { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 8px; }
-        .week-checkboxes label { display: flex; align-items: center; gap: 5px; padding: 8px 12px; background: #3d3d3d; border-radius: 6px; cursor: pointer; }
-        .week-checkboxes input { cursor: pointer; }
-        .btn { background: #4CAF50; color: white; border: none; padding: 12px 24px; border-radius: 8px; font-size: 1rem; cursor: pointer; transition: background 0.3s; }
-        .btn:hover { background: #45a049; }
-        .status { margin-top: 15px; font-size: 0.9rem; color: #aaa; }
-        .reminder-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #ff0000; color: white; display: none; justify-content: center; align-items: center; flex-direction: column; z-index: 9999; }
-        .reminder-overlay.active { display: flex; animation: flash 0.5s infinite alternate; }
-        @keyframes flash { from { opacity: 1; } to { opacity: 0.7; } }
-        .reminder-text { font-size: 3rem; font-weight: bold; margin-bottom: 20px; }
-        .close-btn { background: white; color: #ff0000; border: none; padding: 15px 30px; border-radius: 8px; font-size: 1.2rem; cursor: pointer; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="定时提醒">
+<meta name="theme-color" content="#0d0d0d">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="format-detection" content="telephone=no">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="apple-touch-startup-image" href="icon-512.png">
+<title>定时提醒</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:sans-serif;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+body{background:#0d0d0d;color:#fff;min-height:100vh;overflow:hidden;-webkit-user-select:none;user-select:none}
+
+/* ===== 主界面 ===== */
+#mainPage{display:flex;justify-content:center;align-items:center;width:100%;height:100vh;position:relative}
+#mainTime{font-size:clamp(4rem,15vw,10rem);font-weight:bold;color:#00ff88;letter-spacing:4px;text-shadow:0 0 40px rgba(0,255,136,0.3);user-select:none}
+#mainDate{font-size:clamp(0.9rem,2.5vw,1.3rem);color:#888;margin-top:12px;letter-spacing:2px;user-select:none}
+
+/* 设置按钮 */
+#settingsBtn{position:fixed;bottom:30px;right:30px;width:60px;height:60px;border-radius:50%;background:rgba(255,255,255,0.1);border:2px solid rgba(255,255,255,0.2);color:#fff;font-size:26px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .3s;z-index:100}
+#settingsBtn:hover{background:rgba(255,255,255,0.2);transform:rotate(60deg)}
+
+/* ===== 设置界面 ===== */
+#settingsPage{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:#0d0d0d;z-index:200;overflow-y:auto;padding:40px 20px}
+#settingsPage .container{max-width:460px;margin:0 auto;background:#1a1a1a;border-radius:16px;padding:30px}
+#settingsPage h1{text-align:center;margin-bottom:30px;font-size:1.5rem;color:#00ff88}
+#settingsPage .back-btn{position:fixed;top:20px;left:20px;width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,0.1);border:none;color:#fff;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+
+.setting-item{margin-bottom:22px}
+.setting-item label{display:block;margin-bottom:8px;font-weight:bold;color:#ccc}
+.time-input{display:flex;gap:5px;align-items:center;flex-wrap:nowrap}
+.time-input input{width:55px;padding:10px 4px;border-radius:8px;border:none;text-align:center;font-size:0.95rem;background:#2d2d2d;color:#fff;flex-shrink:0}
+.time-input input#dateYr{width:62px}
+.time-input span{font-size:1rem;color:#888;flex-shrink:0}
+.week-checkboxes{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.week-checkboxes label{display:flex;align-items:center;gap:5px;padding:8px 14px;background:#2d2d2d;border-radius:8px;cursor:pointer;color:#ccc;font-size:0.85rem;font-weight:normal}
+.week-checkboxes input{cursor:pointer;accent-color:#00ff88}
+
+.btn-row{display:flex;gap:12px;margin-top:10px}
+.btn{padding:12px 0;border-radius:8px;font-size:1rem;cursor:pointer;border:none;transition:all .3s;flex:1;text-align:center;font-weight:bold}
+.btn-save{background:#00ff88;color:#0d0d0d}
+.btn-save:hover{background:#00cc6a}
+.btn-test{background:#ff4757;color:#fff}
+.btn-test:hover{background:#e0394a}
+.status{margin-top:12px;font-size:0.85rem;color:#888;text-align:center;min-height:20px}
+
+/* ===== 提醒弹窗 ===== */
+#reminderOverlay{position:fixed;top:0;left:0;width:100%;height:100%;background:#1a1a1a;color:#fff;display:none;justify-content:center;align-items:center;flex-direction:column;z-index:9999}
+#reminderOverlay.active{display:flex}
+#reminderOverlay .reminder-text{font-size:clamp(2rem,8vw,3.5rem);font-weight:bold;margin-bottom:25px;text-align:center}
+#reminderOverlay .close-btn{background:#fff;color:#ff0000;border:none;padding:15px 40px;border-radius:10px;font-size:1.2rem;cursor:pointer;font-weight:bold}
+
+/* ===== 手机端适配 ===== */
+@media (max-width: 500px) {
+  #mainTime{letter-spacing:2px}
+  #settingsPage{padding:30px 10px}
+  #settingsPage .container{padding:20px 15px;margin:0}
+  #settingsPage h1{font-size:1.3rem;margin-bottom:24px}
+  #settingsPage .back-btn{top:10px;left:10px}
+  #settingsBtn{bottom:20px;right:20px;width:54px;height:54px;font-size:24px}
+  .setting-item{margin-bottom:18px}
+  .setting-item label{margin-bottom:6px}
+  .time-input input{padding:11px 3px;min-height:40px}
+  .btn{padding:14px 0;min-height:44px;font-size:1.05rem}
+  .week-checkboxes{gap:6px}
+  .week-checkboxes label{padding:10px 12px;min-height:40px}
+  #reminderOverlay .close-btn{padding:16px 36px;font-size:1.1rem}
+}
+</style>
 </head>
 <body>
-    <div class="header">
-        <h1>定时提醒</h1>
-        <div class="current-time" id="currentTime">--:--:--</div>
+
+<!-- ===== 主界面 ===== -->
+<div id="mainPage">
+  <div style="text-align:center">
+    <div id="mainTime">--:--:--</div>
+    <div id="mainDate">----年--月--日 星期-</div>
+  </div>
+  <button id="settingsBtn" onclick="openSettings()" title="设置">⚙</button>
+</div>
+
+<!-- ===== 设置界面 ===== -->
+<div id="settingsPage">
+  <button class="back-btn" onclick="closeSettings()">←</button>
+  <div class="container">
+    <h1>⚙ 定时提醒设置</h1>
+
+    <div class="setting-item">
+      <label>上午提醒</label>
+      <div class="time-input">
+        <input type="number" id="t1h" min="0" max="23" placeholder="时">
+        <span>:</span>
+        <input type="number" id="t1m" min="0" max="59" placeholder="分">
+      </div>
     </div>
 
-    <div class="settings">
-        <div class="setting-item">
-            <label>提醒1</label>
-            <div class="time-input">
-                <input type="number" id="startHour" min="0" max="23" placeholder="时">
-                <span>:</span>
-                <input type="number" id="startMin" min="0" max="59" placeholder="分">
-            </div>
-        </div>
-
-        <div class="setting-item">
-            <label>提醒2</label>
-            <div class="time-input">
-                <input type="number" id="endHour" min="0" max="23" placeholder="时">
-                <span>:</span>
-                <input type="number" id="endMin" min="0" max="59" placeholder="分">
-            </div>
-        </div>
-
-        <div class="setting-item">
-            <label>提醒星期</label>
-            <div class="week-checkboxes">
-                <label><input type="checkbox" value="1" checked> 周一</label>
-                <label><input type="checkbox" value="2" checked> 周二</label>
-                <label><input type="checkbox" value="3" checked> 周三</label>
-                <label><input type="checkbox" value="4" checked> 周四</label>
-                <label><input type="checkbox" value="5" checked> 周五</label>
-                <label><input type="checkbox" value="6"> 周六</label>
-                <label><input type="checkbox" value="0"> 周日</label>
-            </div>
-        </div>
-
-        <button class="btn" onclick="saveSettings()">保存设置</button>
-        <div class="status" id="statusText">提示：点击保存设置生效</div>
+    <div class="setting-item">
+      <label>下午提醒</label>
+      <div class="time-input">
+        <input type="number" id="t2h" min="0" max="23" placeholder="时">
+        <span>:</span>
+        <input type="number" id="t2m" min="0" max="59" placeholder="分">
+      </div>
     </div>
 
-    <div class="reminder-overlay" id="reminderOverlay">
-        <div class="reminder-text">⚠️ 时间到！</div>
-        <button class="close-btn" onclick="closeReminder()">我知道了</button>
+    <div class="setting-item">
+      <label style="display:flex;align-items:center;gap:8px">
+        日期提醒
+        <input type="checkbox" id="dateEnabled" onchange="toggleDateInputs()" style="accent-color:#00ff88;margin:0;cursor:pointer">
+        <span style="font-weight:normal">启用</span>
+      </label>
+      <div class="time-input">
+        <input type="number" id="dateYr" min="2020" max="2099" placeholder="年" disabled>
+        <span>年</span>
+        <input type="number" id="dateMon" min="1" max="12" placeholder="月" disabled>
+        <span>月</span>
+        <input type="number" id="dateDay" min="1" max="31" placeholder="日" disabled>
+        <span>日</span>
+        <input type="number" id="dateHr" min="0" max="23" placeholder="时" disabled>
+        <span>:</span>
+        <input type="number" id="dateMin" min="0" max="59" placeholder="分" disabled>
+      </div>
     </div>
 
-    <script>
-        // 从本地存储加载设置
-        let settings = JSON.parse(localStorage.getItem('punchSettings')) || {
-            startHour: 9, startMin: 20,
-            endHour: 18, endMin: 10,
-            weeks: [1,2,3,4,5]
-        };
+    <div class="setting-item">
+      <label>提醒日期</label>
+      <div class="week-checkboxes">
+        <label><input type="checkbox" value="1" checked> 周一</label>
+        <label><input type="checkbox" value="2" checked> 周二</label>
+        <label><input type="checkbox" value="3" checked> 周三</label>
+        <label><input type="checkbox" value="4" checked> 周四</label>
+        <label><input type="checkbox" value="5" checked> 周五</label>
+        <label><input type="checkbox" value="6"> 周六</label>
+        <label><input type="checkbox" value="0"> 周日</label>
+      </div>
+    </div>
 
-        // 初始化界面
-        function init() {
-            document.getElementById('startHour').value = settings.startHour;
-            document.getElementById('startMin').value = settings.startMin;
-            document.getElementById('endHour').value = settings.endHour;
-            document.getElementById('endMin').value = settings.endMin;
-            
-            document.querySelectorAll('.week-checkboxes input').forEach(cb => {
-                cb.checked = settings.weeks.includes(parseInt(cb.value));
-            });
+    <div class="btn-row">
+      <button class="btn btn-save" onclick="saveSettings()">保存设置</button>
+      <button class="btn btn-test" onclick="showReminder()">立即测试提醒</button>
+    </div>
+    <div class="status" id="statusText"></div>
+  </div>
+</div>
+
+<!-- ===== 提醒弹窗 ===== -->
+<div id="reminderOverlay">
+  <div class="reminder-text">时间到了！</div>
+  <button class="close-btn" onclick="closeReminder()">我知道了</button>
+</div>
+
+<script>
+// 加载设置
+let settings = JSON.parse(localStorage.getItem('reminderSettings')) || {
+  t1h: 9, t1m: 20,
+  t2h: 18, t2m: 10,
+  weeks: [1,2,3,4,5],
+  dateEnabled: false,
+  dateYr: 0, dateMon: 0, dateDay: 0, dateHr: 0, dateMin: 0
+};
+let lastTriggeredMinute = -1;
+let notificationGranted = false;
+
+// 请求通知权限
+function requestNotification() {
+  if (!('Notification' in window)) return;
+  if (Notification.permission === 'granted') {
+    notificationGranted = true;
+  } else if (Notification.permission === 'default') {
+    Notification.requestPermission().then(function(p) {
+      notificationGranted = (p === 'granted');
+    });
+  }
+}
+
+// 发送系统通知
+function sendNotification() {
+  if (!notificationGranted && Notification.permission !== 'granted') return;
+  notificationGranted = true;
+  var n = new Notification('定时提醒', {
+    body: '时间到了！',
+    icon: 'icon-192.png',
+    badge: 'icon-192.png',
+    tag: 'punch-reminder',
+    requireInteraction: true,
+    vibrate: [200, 100, 200, 100, 200]
+  });
+  n.onclick = function() {
+    window.focus();
+    n.close();
+  };
+  // 5秒后自动关闭（避免堆叠）
+  setTimeout(function() { n.close(); }, 5000);
+}
+
+// 初始化界面
+function init() {
+  document.getElementById('t1h').value = settings.t1h;
+  document.getElementById('t1m').value = settings.t1m;
+  document.getElementById('t2h').value = settings.t2h;
+  document.getElementById('t2m').value = settings.t2m;
+  document.querySelectorAll('.week-checkboxes input').forEach(cb => {
+    cb.checked = settings.weeks.includes(parseInt(cb.value));
+  });
+  document.getElementById('dateYr').value = settings.dateYr || '';
+  document.getElementById('dateMon').value = settings.dateMon || '';
+  document.getElementById('dateDay').value = settings.dateDay || '';
+  document.getElementById('dateHr').value = settings.dateHr || '';
+  document.getElementById('dateMin').value = settings.dateMin || '';
+  document.getElementById('dateEnabled').checked = settings.dateEnabled;
+  toggleDateInputs();
+  requestNotification();
+}
+
+// 切换设置界面
+function openSettings() {
+  document.getElementById('settingsPage').style.display = 'block';
+  init();
+}
+function closeSettings() {
+  document.getElementById('settingsPage').style.display = 'none';
+}
+
+// 切换日期提醒输入框
+function toggleDateInputs() {
+  var on = document.getElementById('dateEnabled').checked;
+  if (!on) {
+    var now = new Date();
+    document.getElementById('dateYr').value = now.getFullYear();
+    document.getElementById('dateMon').value = now.getMonth() + 1;
+    document.getElementById('dateDay').value = now.getDate();
+    document.getElementById('dateHr').value = now.getHours();
+    document.getElementById('dateMin').value = now.getMinutes();
+  }
+  document.getElementById('dateYr').disabled = !on;
+  document.getElementById('dateMon').disabled = !on;
+  document.getElementById('dateDay').disabled = !on;
+  document.getElementById('dateHr').disabled = !on;
+  document.getElementById('dateMin').disabled = !on;
+}
+
+// 保存设置
+function saveSettings() {
+  settings.t1h = parseInt(document.getElementById('t1h').value) || 0;
+  settings.t1m = parseInt(document.getElementById('t1m').value) || 0;
+  settings.t2h = parseInt(document.getElementById('t2h').value) || 0;
+  settings.t2m = parseInt(document.getElementById('t2m').value) || 0;
+
+  settings.weeks = [];
+  document.querySelectorAll('.week-checkboxes input:checked').forEach(cb => {
+    settings.weeks.push(parseInt(cb.value));
+  });
+
+  settings.dateEnabled = document.getElementById('dateEnabled').checked;
+  settings.dateYr = parseInt(document.getElementById('dateYr').value) || 0;
+  settings.dateMon = parseInt(document.getElementById('dateMon').value) || 0;
+  settings.dateDay = parseInt(document.getElementById('dateDay').value) || 0;
+  settings.dateHr = parseInt(document.getElementById('dateHr').value) || 0;
+  settings.dateMin = parseInt(document.getElementById('dateMin').value) || 0;
+
+  localStorage.setItem('reminderSettings', JSON.stringify(settings));
+  var st = document.getElementById('statusText');
+  st.textContent = '✅ 设置已保存！';
+  setTimeout(function(){st.textContent='';},2000);
+}
+
+// 显示提醒
+function showReminder() {
+  document.getElementById('reminderOverlay').classList.add('active');
+  sendNotification();
+  var ctx = new (window.AudioContext || window.webkitAudioContext)();
+  var osc = ctx.createOscillator();
+  osc.type = 'sine';
+  osc.frequency.value = 800;
+  osc.connect(ctx.destination);
+  osc.start();
+  setTimeout(function(){osc.stop();},500);
+}
+
+// 关闭提醒
+function closeReminder() {
+  document.getElementById('reminderOverlay').classList.remove('active');
+}
+
+// 时间更新
+function checkTime() {
+  var now = new Date();
+  var h = now.getHours();
+  var m = now.getMinutes();
+  var s = now.getSeconds();
+  var w = now.getDay();
+
+  // 更新主界面时间
+  document.getElementById('mainTime').textContent =
+    String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
+
+  var weekNames = ['日','一','二','三','四','五','六'];
+  document.getElementById('mainDate').textContent =
+    now.getFullYear() + '年' +
+    String(now.getMonth()+1).padStart(2,'0') + '月' +
+    String(now.getDate()).padStart(2,'0') + '日 星期' +
+    weekNames[w];
+
+  // 检查提醒
+  var minuteKey = h * 60 + m;
+  if (minuteKey === lastTriggeredMinute) return;
+
+  var shouldTrigger = false;
+
+  // 星期提醒
+  if (settings.weeks.includes(w)) {
+    if ((h === settings.t1h && m === settings.t1m) || (h === settings.t2h && m === settings.t2m)) {
+      shouldTrigger = true;
+    }
+  }
+
+  // 日期提醒
+  if (settings.dateEnabled && settings.dateYr > 0 && settings.dateMon > 0 && settings.dateDay > 0) {
+    if (now.getFullYear() === settings.dateYr && now.getMonth()+1 === settings.dateMon && now.getDate() === settings.dateDay) {
+      if (h === settings.dateHr && m === settings.dateMin) {
+        shouldTrigger = true;
+      }
+    }
+  }
+
+  if (shouldTrigger) {
+    lastTriggeredMinute = minuteKey;
+    showReminder();
+  }
+}
+
+init();
+setInterval(checkTime, 1000);
+
+// 注册 Service Worker（PWA 离线缓存）
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').then(function(reg) {
+    reg.addEventListener('updatefound', function() {
+      var newWorker = reg.installing;
+      newWorker.addEventListener('statechange', function() {
+        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+          // 新版本已就绪，通知用户刷新
+          console.log('新版本已缓存，刷新页面即可更新');
         }
-
-        // 保存设置
-        function saveSettings() {
-            settings.startHour = parseInt(document.getElementById('startHour').value) || 0;
-            settings.startMin = parseInt(document.getElementById('startMin').value) || 0;
-            settings.endHour = parseInt(document.getElementById('endHour').value) || 0;
-            settings.endMin = parseInt(document.getElementById('endMin').value) || 0;
-            
-            settings.weeks = [];
-            document.querySelectorAll('.week-checkboxes input:checked').forEach(cb => {
-                settings.weeks.push(parseInt(cb.value));
-            });
-
-            localStorage.setItem('punchSettings', JSON.stringify(settings));
-            document.getElementById('statusText').textContent = '✅ 设置已保存！';
-            setTimeout(() => document.getElementById('statusText').textContent = '', 2000);
-        }
-
-        // 显示提醒
-        function showReminder() {
-            document.getElementById('reminderOverlay').classList.add('active');
-            // 播放提示音
-            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            const oscillator = audioCtx.createOscillator();
-            oscillator.type = 'sine';
-            oscillator.frequency.value = 800;
-            oscillator.connect(audioCtx.destination);
-            oscillator.start();
-            setTimeout(() => oscillator.stop(), 500);
-        }
-
-        // 关闭提醒
-        function closeReminder() {
-            document.getElementById('reminderOverlay').classList.remove('active');
-        }
-
-        // 时间更新和检查
-        function checkTime() {
-            const now = new Date();
-            const h = now.getHours();
-            const m = now.getMinutes();
-            const s = now.getSeconds();
-            const w = now.getDay(); // 0=周日,1=周一...6=周六
-
-            // 更新当前时间显示
-            document.getElementById('currentTime').textContent = 
-                `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
-
-            // 检查是否到了提醒时间
-            if (settings.weeks.includes(w)) {
-                // 提醒1
-                if (h === settings.startHour && m === settings.startMin && s === 0) {
-                    showReminder();
-                }
-                // 提醒2
-                if (h === settings.endHour && m === settings.endMin && s === 0) {
-                    showReminder();
-                }
-            }
-        }
-
-        // 初始化并每秒更新
-        init();
-        setInterval(checkTime, 1000);
-    </script>
+      });
+    });
+  });
+}
+</script>
 </body>
 </html>
