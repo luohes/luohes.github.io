@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>打卡提醒</title>
+    <title>定时提醒</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: sans-serif; }
         body { background: #1a1a1a; color: #fff; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 20px; }
@@ -29,13 +29,13 @@
 </head>
 <body>
     <div class="header">
-        <h1>上下班打卡提醒</h1>
+        <h1>定时提醒</h1>
         <div class="current-time" id="currentTime">--:--:--</div>
     </div>
 
     <div class="settings">
         <div class="setting-item">
-            <label>上班提醒时间</label>
+            <label>提醒1</label>
             <div class="time-input">
                 <input type="number" id="startHour" min="0" max="23" placeholder="时">
                 <span>:</span>
@@ -44,7 +44,7 @@
         </div>
 
         <div class="setting-item">
-            <label>下班提醒时间</label>
+            <label>提醒2</label>
             <div class="time-input">
                 <input type="number" id="endHour" min="0" max="23" placeholder="时">
                 <span>:</span>
@@ -70,8 +70,8 @@
     </div>
 
     <div class="reminder-overlay" id="reminderOverlay">
-        <div class="reminder-text">⚠️ 打卡时间到！</div>
-        <button class="close-btn" onclick="closeReminder()">我已打卡</button>
+        <div class="reminder-text">⚠️ 时间到！</div>
+        <button class="close-btn" onclick="closeReminder()">我知道了</button>
     </div>
 
     <script>
@@ -143,11 +143,11 @@
 
             // 检查是否到了提醒时间
             if (settings.weeks.includes(w)) {
-                // 上班提醒
+                // 提醒1
                 if (h === settings.startHour && m === settings.startMin && s === 0) {
                     showReminder();
                 }
-                // 下班提醒
+                // 提醒2
                 if (h === settings.endHour && m === settings.endMin && s === 0) {
                     showReminder();
                 }
