@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>打卡提醒</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; background: #111; }
+
+  #overlay {
+    display: none;
+    position: fixed; inset: 0; z-index: 9999;
+    background: rgba(0,0,0,0.92);
+    justify-content: center; align-items: center;
+    flex-direction: column;
+    cursor: pointer;
+  }
+  #overlay.show {
+    display: flex;
+    animation: flash 0.6s ease-in-out;
+  }
+  @keyframes flash {
+    0% { background: rgba(255,0,0,0.95); }
+    100% { background: rgba(0,0,0,0.92); }
+  }
+
+  #overlay .text {
+    font-size: clamp(36px, 8vw, 72px);
+    font-weight: 700;
+    color: #ff4757;
+    text-align: center;
+    padding: 0 20px;
+    text-shadow: 0 0 60px rgba(255,71,87,0.6);
+    animation: pulse 1s ease-in-out infinite alternate;
+  }
+  @keyframes pulse {
+    0% { transform: scale(1); }
+    100% { transform: scale(1.08); }
+  }
+
+  #overlay .hint {
+    margin-top: 40px;
+    font-size: 18px;
+    color: rgba(255,255,255,0.4);
+  }
+
+  #status {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    background: #1a1a1a; color: #888;
+    padding: 16px; text-align: center;
+    font-size: 13px; font-family: monospace;
+  }
+</style>
+</head>
+<body>
+
+<div id="overlay" onclick="dismiss()">
+  <div class="text">⚠️ 打卡时间到！</div>
+  <div class="hint">点击任意处关闭</div>
+</div>
+
+<div id="status">
+  <button id="testBtn" style="margin-top:8px;padding:8px 24px;background:#ff4757;color:#fff;border:none;border-radius:6px;font-size:14px;cursor:pointer;">立即测试提醒</button>
+</div>
+
+<script>
+// 要用到的音频上下文（用户交互后才能用）
+let audioCtx = null;
+
+// 播放提示音
+function beep() {
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const dur = 0.15;
+    const gap = 0.08;
+    const freq = [800, 1000, 800, 1000, 800, 1000];
+    let t = audioCtx.currentTime;
+    freq.forEach((f, i) => {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'square';
+      osc.frequency.value = f;
+      gain.gain.setValueAtTime(0.3, t + i * (dur + gap));
+      gain.gain.exponentialRampToValueAtTime(0.001, t + i * (dur + gap) + dur);
+      osc.connect(gain).connect(audioCtx.destination);
+      osc.start(t + i * (dur + gap));
+      osc.stop(t + i * (dur + gap) + dur);
+    });
+  } catch(e) {}
+}
+
+// 触发提醒
+let activeReminder = false;
+function trigger() {
+  if (activeReminder) return;
+  activeReminder = true;
+  document.getElementById('overlay').classList.add('show');
+  beep();
+  // 持续响 5 秒
+  setTimeout(() => { if (activeReminder) beep(); }, 2000);
+  setTimeout(() => { if (activeReminder) beep(); }, 4000);
+}
+
+// 关闭提醒
+function dismiss() {
+  activeReminder = false;
+  document.getElementById('overlay').classList.remove('show');
+}
+
+// 获取当前时间字符串
+function now() {
+  const d = new Date();
+  return d.getHours().toString().padStart(2,'0') + ':' +
+         d.getMinutes().toString().padStart(2,'0') + ':' +
+         d.getSeconds().toString().padStart(2,'0');
+}
+
+// 定时检测
+const TARGETS = ['09:20', '18:10'];
+let lastCheck = '';
+setInterval(() => {
+  const d = new Date();
+  const hhmm = d.getHours().toString().padStart(2,'0') + ':' +
+               d.getMinutes().toString().padStart(2,'0');
+  const seconds = d.getSeconds().toString().padStart(2,'0');
+
+  // 更新时间显示
+  document.getElementById('status').textContent =
+    '当前时间 ' + now() + '  |  提醒时间 09:20 / 18:10';
+
+  // 到达目标时间且秒数在 0-5 之间，触发一次
+  const key = hhmm + ':' + Math.floor(d.getSeconds() / 5);
+  if (TARGETS.includes(hhmm) && d.getSeconds() < 5 && key !== lastCheck) {
+    lastCheck = key;
+    trigger();
+  }
+}, 1000);
+
+// 首次点击页面激活音频
+document.addEventListener('click', () => {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+}, { once: true });
+
+// 测试按钮
+document.getElementById('testBtn').addEventListener('click', (e) => {
+  e.stopPropagation();
+  trigger();
+});
+</script>
+</body>
+</html>
